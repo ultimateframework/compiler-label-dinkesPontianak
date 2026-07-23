@@ -115,17 +115,17 @@ with tab2:
     )
     
     # Cek keberadaan file gambar jangkar
-    template_path = "supreme template.jpg"
+    template_path = "supreme template.png"
     image_loaded = None
     
     if os.path.exists(template_path):
         try:
             image_loaded = Image.open(template_path)
-            st.info("👁️ Gambar jangkar 'supreme template.jpg' terdeteksi dan dianalisis oleh Vision AI.")
+            st.info("👁️ Gambar jangkar 'supreme template.png' terdeteksi dan dianalisis oleh Vision AI.")
         except Exception as e:
-            st.warning(f"⚠️ Berkas 'supreme template.jpg' ditemukan tapi gagal dibuka: {e}")
+            st.warning(f"⚠️ Berkas 'supreme template.png' ditemukan tapi gagal dibuka: {e}")
     else:
-        st.warning("⚠️ Gambar jangkar 'supreme template.jpg' tidak ditemukan di repository. Analisis vision dijalankan tanpa acuan gambar jangkar.")
+        st.warning("⚠️ Gambar jangkar 'supreme template.png' tidak ditemukan di repository. Analisis vision dijalankan tanpa acuan gambar jangkar.")
 
     if st.button("🎨 Proses Draf Visual Supreme v8.5", key="btn_tab2"):
         if not api_key:
@@ -139,7 +139,7 @@ with tab2:
                     // ==============================================================================
                     // [SYSTEM_COMPILER] : BPOM_IMAGE_GEN_v8.5_STRICT_SUPREME
                     // DEVELOPER/ARCHITECT: DYAN AL MATARAMI | SPP-IRT PONTIANAK ACCELERATION PROJECT
-                    // TARGET_ANCHOR: "supreme template.jpg" (Strict Geometrical Anatomy & Cluster Layout)
+                    // TARGET_ANCHOR: "supreme template.png" (Strict Geometrical Anatomy & Cluster Layout)
                     // DIRECTIVE: SMART_ALLERGEN_BOLDING // ABSOLUTE_MANUAL_OVERRIDE // ZERO_HALLUCINATION
                     // ==============================================================================
 
@@ -149,7 +149,7 @@ with tab2:
 
                     <System_Directive>
                       Act as a "Lead Creative Director & BPOM Compliance Specialist".
-                      Transform [DATA_INPUT] into a high-end food label visual layout breakdown using the EXACT geometric layout of the anchor template "supreme template.jpg".
+                      Transform [DATA_INPUT] into a high-end food label visual layout breakdown using the EXACT geometric layout of the anchor template "supreme template.png".
                     </System_Directive>
 
                     <Dynamic_Data_Logic>
@@ -166,7 +166,7 @@ with tab2:
                     </Dynamic_Data_Logic>
 
                     <Visual_Innovation_Logic>
-                      [P5_Render] Hirarki Tata Letak "supreme template.jpg":
+                      [P5_Render] Hirarki Tata Letak "supreme template.png":
                       1. [TOP_CENTER]: BRAND_NAME (UPPERCASE, Bold) -> Di atas foto lingkaran.
                       2. [CORE_CENTER]: Foto produk terpotong LINGKARAN sempurna (1:1).
                       3. [MIDDLE_CENTER]: PRODUCT_NAME (UPPERCASE, Bold, Font Terbesar) -> Tepat di bawah foto lingkaran.
