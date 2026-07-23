@@ -21,10 +21,27 @@ st.caption("Sistem Otomatisasi & Kompilasi Draf Label P-IRT Berbasis Standar Reg
 
 tab1, tab2 = st.tabs(["📄 Tahap 1: Kompilasi Teks (v3.3)", "🎨 Tahap 2: Layout Visual (v8.5)"])
 
-# Helper Function untuk Memanggil Model dengan Fallback Safe-Quota
-def get_gemini_model():
-    # Menggunakan gemini-1.5-flash yang memiliki kuota gratis resmi 1.500 request/hari
-    return genai.GenerativeModel('gemini-1.5-flash')
+# Helper Function dengan Auto-Fallback Nama Model
+def call_gemini_api(contents):
+    # Daftar nama model resmi yang didukung v1beta
+    candidate_models = [
+        'gemini-1.5-flash-latest',
+        'gemini-1.5-flash',
+        'models/gemini-1.5-flash',
+        'gemini-1.5-pro-latest'
+    ]
+    
+    last_error = None
+    for model_name in candidate_models:
+        try:
+            model = genai.GenerativeModel(model_name)
+            response = model.generate_content(contents)
+            return response
+        except Exception as e:
+            last_error = e
+            continue
+            
+    raise last_error
 
 # ==========================================
 # TAB 1: BPOM_LABEL_COMPILER_v3.3_PSEUDO
@@ -46,8 +63,6 @@ with tab1:
         else:
             with st.spinner("Sedang menjalankan BPOM_LABEL_COMPILER_v3.3_PSEUDO..."):
                 try:
-                    model = get_gemini_model()
-                    
                     prompt = f"""
                     // ==============================================================================
                     // [SYSTEM_COMPILER] : BPOM_LABEL_COMPILER_v3.3_PSEUDO
@@ -97,7 +112,7 @@ with tab1:
                     {input_text}
                     """
                     
-                    response = model.generate_content(prompt)
+                    response = call_gemini_api(prompt)
                     
                     st.success("✅ Teks Berhasil Dikompilasi!")
                     st.subheader("📋 Hasil Output Strict Compiler v3.3:")
@@ -139,8 +154,6 @@ with tab2:
         else:
             with st.spinner("Vision AI sedang mengeksekusi BPOM_IMAGE_GEN_v8.5_STRICT_SUPREME..."):
                 try:
-                    model = get_gemini_model()
-                    
                     prompt = f"""
                     // ==============================================================================
                     // [SYSTEM_COMPILER] : BPOM_IMAGE_GEN_v8.5_STRICT_SUPREME
@@ -209,9 +222,9 @@ with tab2:
                     """
                     
                     if image_loaded:
-                        response = model.generate_content([prompt, image_loaded])
+                        response = call_gemini_api([prompt, image_loaded])
                     else:
-                        response = model.generate_content(prompt)
+                        response = call_gemini_api(prompt)
                         
                     st.success("✅ Analisis Visual v8.5 Strict-Supreme Selesai!")
                     st.markdown(response.text)
