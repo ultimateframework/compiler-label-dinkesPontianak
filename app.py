@@ -1,6 +1,7 @@
 import streamlit as st
 from openai import OpenAI
 import os
+import base64
 
 # ==============================================================================
 # 1. KONFIGURASI TAMPILAN HALAMAN WEB
@@ -15,9 +16,14 @@ st.title("🏷️ Akselerator Label SPP-IRT Dinkes")
 st.caption("Sistem Otomatisasi & Kompilasi Draf Label P-IRT Berbasis Standar Regulasi BPOM")
 
 # ==============================================================================
-# 2. AMBIL API KEY OPENAI (AMAN DARI BALIK LAYAR)
+# 2. AMBIL API KEY OPENAI & FUNGSI ENCODE GAMBAR (VISION)
 # ==============================================================================
 api_key = st.secrets.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY")
+
+# Fungsi konversi file gambar lokal ke format Base64 untuk Vision API
+def encode_image(image_path):
+    with open(image_path, "rb") as image_file:
+        return base64.b64encode(image_file.read()).decode('utf-8')
 
 # ==============================================================================
 # 🔑 SIMPAN DUA PROMPT RAKSASA LU (TERSERAP AMAN DI BACKEND)
@@ -40,10 +46,7 @@ INITIATE_SYSTEM() {
     ENFORCE_EYD_TITLE_CASE = TRUE;
     ENABLE_FUZZY_INPUT_PARSER = TRUE; 
     
-    // DEFINE LOWERCASE CONJUNCTIONS & PREPOSITIONS FOR EYD
     SET EXCEPT_CONJUNCTIONS_LOWERCASE = ["dan", "atau", "di", "ke", "dari", "pada", "untuk", "dengan", "oleh"];
-
-    // ATURAN MUTLAK TEMPLATE
     LOCK_TEMPLATE_KEYS = TRUE; 
     FORBID_TEMPLATE_MODIFICATION = TRUE;
 }
@@ -59,14 +62,9 @@ DEFINE_DATABASE(Allergen_Map) {
     "Sulfit" | "Sulfur Dioksida" | "Belerang Dioksida" | "Natrium Metabisulfit" | "Kalium Metabisulfit" => "Sulfit"
 }
 
-// ------------------------------------------------------------------------------
-// MODULE 1 & 2: EYD, COMPOSITION & ALLERGEN ENGINE
-// ------------------------------------------------------------------------------
 FUNCTION Apply_EYD_Title_Case(text_input) {
     IF (text_input IS_EMPTY) RETURN "-";
     STRING cleaned = REMOVE_EXTRA_SPACES(text_input);
-    
-    // DENGAN KETENTUAN: Kata hubung wajib huruf kecil kecuali di awal kalimat
     RETURN CAPITALIZE_WORDS(cleaned, KEEP_LOWERCASE = EXCEPT_CONJUNCTIONS_LOWERCASE); 
 }
 
@@ -75,10 +73,7 @@ FUNCTION Format_Composition(raw_input) {
     ingredients = SORT_BY_ESTIMATED_VOLUME(ingredients, DESCENDING);
     ingredients = APPLY_EYD_TITLE_CASE(ingredients);
     STRING formatted_text = JOIN_ARRAY(ingredients, ", ");
-    
-    // REVISI: Menggunakan "dan" huruf kecil
     REPLACE_LAST_COMMA_WITH(formatted_text, ", dan ");
-    
     IF (NOT formatted_text.ENDS_WITH(".")) APPEND(formatted_text, ".");
     RETURN formatted_text;
 }
@@ -95,17 +90,12 @@ FUNCTION Extract_Raw_Allergens(formatted_composition) {
 
 FUNCTION Generate_Allergen_Warning(found_raw_allergens) {
     IF (found_raw_allergens == "Tidak Ada Bahan Alergen.") {
-        // REVISI: "atau" memakai huruf kecil
         RETURN "Bebas Alergen Utama, Tidak Mengandung Gandum, Susu, Telur, Kedelai, atau Kacang-kacangan.";
     } ELSE {
-        // PERUBAHAN FINAL: Jika ada alergen, langsung bypass mapping dan cetak instruksi baku
         RETURN "Lihat Daftar Bahan Yang Dicetak Tebal.";
     }
 }
 
-// ------------------------------------------------------------------------------
-// MODULE 3: FUZZY PARSER & STRICT OUTPUT EXECUTION
-// ------------------------------------------------------------------------------
 EXECUTE_PIPELINE() {
     WAIT_FOR_INPUT(RAW_USER_INPUT);
 
@@ -141,7 +131,6 @@ EXECUTE_PIPELINE() {
     TERMINATE_SESSION();
 }
 
-// ATURAN MUTLAK: JANGAN UBAH SATU HURUF PUN DARI TEKS DI SEBELAH KIRI TANDA TITIK DUA (:)
 TEMPLATE PRINT_STRICT_OUTPUT(t, m, p, d, k, b, i, no, br, wa, ig, hl) {
 """
 tema & warna : ${t}
@@ -176,7 +165,7 @@ PROMPT_TAHAP_2_IMAGE = '''
 
 <System_Directive>
   Act as a "Lead Creative Director & BPOM Compliance Specialist".
-  Transform [DATA_INPUT] into a high-end food label image using the EXACT geometric layout of the anchor template "supreme template.jpg".
+  Analyze the attached anchor image "supreme template.jpg" alongside the [DATA_INPUT] to generate a precise visual layout specification.
 </System_Directive>
 
 <Dynamic_Data_Logic>
@@ -232,7 +221,7 @@ PROMPT_TAHAP_2_IMAGE = '''
   9. Nomor Izin: [nomor izin]
   ---
 
-  [STEP_2]: Generate and display the Elite Visual Label Image based on layout rules.
+  [STEP_2]: Generate visual layout specification based on anchor template.
 
   [STEP_3]: Output Metadata Footer:
   ---
@@ -254,7 +243,7 @@ with tab1:
     input_mentah = st.text_area(
         "📋 Input Data Mentah UMKM:", 
         height=200, 
-        placeholder="Paste data mentah produk UMKM di sini...\nContoh:\nTema: Hijau\nMerk: Sagu Jaya\nProduk: Keripik Sagu\nDiproduksi Oleh: UD Maju\nKomposisi: Tepung Terigu, Minyak, Telur...",
+        placeholder="Paste data mentah produk UMKM di sini...",
         key="input_tahap1"
     )
     
@@ -262,14 +251,14 @@ with tab1:
         if not input_mentah.strip():
             st.warning("⚠️ Silakan masukkan data mentah UMKM terlebih dahulu!")
         elif not api_key:
-            st.error("❌ API Key OpenAI belum dikonfigurasi di Streamlit Secrets!")
+            st.error("❌ API Key OpenAI belum dikonfigurasi!")
         else:
             with st.spinner("Mengecek regulasi BPOM, EYD, & mapping alergen..."):
                 try:
                     client = OpenAI(api_key=api_key)
                     response = client.chat.completions.create(
                         model="gpt-4o",
-                        temperature=0,  # Zero Hallucination
+                        temperature=0,
                         messages=[
                             {"role": "system", "content": PROMPT_TAHAP_1_TEXT},
                             {"role": "user", "content": input_mentah}
@@ -278,15 +267,14 @@ with tab1:
                     hasil_teks = response.choices[0].message.content
                     st.success("✅ Teks Matang BPOM Berhasil Dihasilkan!")
                     st.code(hasil_teks, language="markdown")
-                    st.info("💡 Salin (copy) teks kotak abu-abu di atas, lalu buka 'Tab 2: Layout Visual' untuk memproses gambarnya.")
                 except Exception as e:
                     st.error(f"Terjadi kesalahan sistem: {e}")
 
 # ------------------------------------------------------------------------------
-# TAB 2: PROSES VISUAL LAYOUT & GENERATOR (v8.5)
+# TAB 2: PROSES VISUAL LAYOUT & VISION (v8.5)
 # ------------------------------------------------------------------------------
 with tab2:
-    st.subheader("🎨 Langkah 2: Generator Layout & Bolding Alergen")
+    st.subheader("🎨 Langkah 2: Generator Layout (Vision Anchor Mode)")
     input_matang = st.text_area(
         "📋 Input Teks Matang Hasil Tahap 1:", 
         height=200, 
@@ -298,17 +286,37 @@ with tab2:
         if not input_matang.strip():
             st.warning("⚠️ Silakan masukkan teks matang hasil Tahap 1 terlebih dahulu!")
         elif not api_key:
-            st.error("❌ API Key OpenAI belum dikonfigurasi di Streamlit Secrets!")
+            st.error("❌ API Key OpenAI belum dikonfigurasi!")
         else:
-            with st.spinner("Menyusun geometri layout v8.5 Supreme & auto-bolding alergen..."):
+            with st.spinner("AI sedang membedah gambar 'supreme template.jpg' & menyusun layout..."):
                 try:
                     client = OpenAI(api_key=api_key)
+                    
+                    # CEK APAKAH FILE GAMBAR JANGKAR TERSEDIA
+                    image_path = "supreme template.jpg"
+                    if os.path.exists(image_path):
+                        base64_img = encode_image(image_path)
+                        # Payload Gabungan: System Prompt + Teks Input + Gambar Anchor
+                        user_content = [
+                            {"type": "text", "text": input_matang},
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:image/jpeg;base64,{base64_img}"
+                                }
+                            }
+                        ]
+                        st.info("👁️ Gambar jangkar 'supreme template.jpg' terdeteksi dan dikirim ke Vision AI.")
+                    else:
+                        user_content = input_matang
+                        st.warning("⚠️ File 'supreme template.jpg' tidak ditemukan di GitHub. Menggunakan Mode Teks Murni.")
+
                     response = client.chat.completions.create(
                         model="gpt-4o",
-                        temperature=0,  # Zero Hallucination
+                        temperature=0,
                         messages=[
                             {"role": "system", "content": PROMPT_TAHAP_2_IMAGE},
-                            {"role": "user", "content": input_matang}
+                            {"role": "user", "content": user_content}
                         ]
                     )
                     hasil_visual = response.choices[0].message.content
