@@ -1,5 +1,5 @@
 import streamlit as st
-import google.generativeai as genai
+from google import genai
 from PIL import Image
 import os
 
@@ -10,11 +10,11 @@ st.set_page_config(
     layout="centered"
 )
 
-# Inisialisasi API Key dari Streamlit Secrets
+# Inisialisasi Client dari Streamlit Secrets
 api_key = st.secrets.get("GEMINI_API_KEY")
 
 if api_key:
-    genai.configure(api_key=api_key)
+    client = genai.Client(api_key=api_key)
 
 st.title("🏷️ Akselerator Label SPP-IRT Dinkes")
 st.caption("Sistem Otomatisasi & Kompilasi Draf Label P-IRT Berbasis Standar Regulasi BPOM")
@@ -41,9 +41,6 @@ with tab1:
         else:
             with st.spinner("Sedang menjalankan BPOM_LABEL_COMPILER_v3.3_PSEUDO..."):
                 try:
-                    # MODEL RESMI TIER GRATIS (PASTI BISA)
-                    model = genai.GenerativeModel('gemini-1.5-flash')
-                    
                     prompt = f"""
                     // ==============================================================================
                     // [SYSTEM_COMPILER] : BPOM_LABEL_COMPILER_v3.3_PSEUDO
@@ -93,7 +90,10 @@ with tab1:
                     {input_text}
                     """
                     
-                    response = model.generate_content(prompt)
+                    response = client.models.generate_content(
+                        model='gemini-2.0-flash',
+                        contents=prompt,
+                    )
                     
                     st.success("✅ Teks Berhasil Dikompilasi!")
                     st.subheader("📋 Hasil Output Strict Compiler v3.3:")
@@ -135,9 +135,6 @@ with tab2:
         else:
             with st.spinner("Vision AI sedang mengeksekusi BPOM_IMAGE_GEN_v8.5_STRICT_SUPREME..."):
                 try:
-                    # MODEL RESMI TIER GRATIS (PASTI BISA)
-                    model = genai.GenerativeModel('gemini-1.5-flash')
-                    
                     prompt = f"""
                     // ==============================================================================
                     // [SYSTEM_COMPILER] : BPOM_IMAGE_GEN_v8.5_STRICT_SUPREME
@@ -206,9 +203,14 @@ with tab2:
                     """
                     
                     if image_loaded:
-                        response = model.generate_content([prompt, image_loaded])
+                        contents = [prompt, image_loaded]
                     else:
-                        response = model.generate_content(prompt)
+                        contents = [prompt]
+
+                    response = client.models.generate_content(
+                        model='gemini-2.0-flash',
+                        contents=contents,
+                    )
                         
                     st.success("✅ Analisis Visual v8.5 Strict-Supreme Selesai!")
                     st.markdown(response.text)
