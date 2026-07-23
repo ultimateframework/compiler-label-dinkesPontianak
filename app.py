@@ -21,6 +21,11 @@ st.caption("Sistem Otomatisasi & Kompilasi Draf Label P-IRT Berbasis Standar Reg
 
 tab1, tab2 = st.tabs(["📄 Tahap 1: Kompilasi Teks (v3.3)", "🎨 Tahap 2: Layout Visual (v8.5)"])
 
+# Helper Function untuk Memanggil Model dengan Fallback Safe-Quota
+def get_gemini_model():
+    # Menggunakan gemini-1.5-flash yang memiliki kuota gratis resmi 1.500 request/hari
+    return genai.GenerativeModel('gemini-1.5-flash')
+
 # ==========================================
 # TAB 1: BPOM_LABEL_COMPILER_v3.3_PSEUDO
 # ==========================================
@@ -41,7 +46,7 @@ with tab1:
         else:
             with st.spinner("Sedang menjalankan BPOM_LABEL_COMPILER_v3.3_PSEUDO..."):
                 try:
-                    model = genai.GenerativeModel('gemini-2.0-flash')
+                    model = get_gemini_model()
                     
                     prompt = f"""
                     // ==============================================================================
@@ -134,7 +139,7 @@ with tab2:
         else:
             with st.spinner("Vision AI sedang mengeksekusi BPOM_IMAGE_GEN_v8.5_STRICT_SUPREME..."):
                 try:
-                    model = genai.GenerativeModel('gemini-2.0-flash')
+                    model = get_gemini_model()
                     
                     prompt = f"""
                     // ==============================================================================
